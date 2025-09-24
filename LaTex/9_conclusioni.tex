@@ -1,0 +1,22 @@
+\chapter{Conclusioni}
+
+In questo lavoro è stato affrontato il problema dell’instradamento di permutazioni su grafi tramite accoppiamenti, con particolare riferimento all’applicazione al gioco del 15. Partendo dal quadro teorico delineato da Alon, Chung e Graham, si è mostrato come il puzzle possa essere formalizzato in termini di permutazioni, gruppi e grafi, collegandolo direttamente al concetto di routing number.
+
+Dopo aver fornito gli strumenti teorici di base, dalla definizione di permutazione e parità, fino ai richiami alla teoria della complessità e alla distinzione tra classi P e NP, il lavoro ha indagato diversi approcci algoritmici alla risoluzione del gioco come:
+\begin{itemize}
+    \item algoritmi euristici come A* e IDA*  con ottimizzazioni basate su distanza di Manhattan e conflitti lineari;
+    \item una modellazione in Answer Set Programming (ASP), utile per evidenziare la flessibilità del paradigma dichiarativo;
+    \item un tentativo di ridurre il problema al caso delle routing permutations su uno spanning tree, trattato da Alon, Chung e Graham nel paper da cui questo lavoro è iniziato, nella speranza di sfruttare la struttura gerarchica dell’albero per semplificare il processo di instradamento;
+\end{itemize}
+
+Quest’ultimo approccio, tuttavia, non ha portato ai risultati desiderati. La natura fortemente interdipendente delle mosse del gioco del 15 rende infatti impossibile trattare il problema come una semplice sequenza di sottoproblemi locali: fissare progressivamente le tessere, come avverrebbe in uno spanning tree, impedisce di considerare le configurazioni transitorie necessarie a raggiungere la soluzione. Ciò evidenzia un limite concreto nell’applicazione diretta del modello del routing number al puzzle e conferma che la sua risoluzione richiede metodi più flessibili e globali.
+
+Dal punto di vista della complessità computazionale, è stato discusso come la ricerca della sequenza minima di mosse appartenga a problemi NP-completi. Dopo aver messo a confronto i due programmi su tre diverse disposizioni del gioco del 15 siamo giunti alla conclusione che gli algoritmi di ricerca, in particolare A*, hanno dimostrato di essere tra i più efficaci in termini di costi di calcolo, mentre ASP si è rivelato interessante come strumento di modellazione, pur risultando meno competitivo dal punto di vista prestazionale.
+
+Il contributo principale di questo lavoro consiste dunque nell’aver mostrato come un classico problema combinatorio come il gioco del 15, possa essere reinterpretato attraverso il quadro teorico delle permutazioni di instradamento su grafi tramite accoppiamenti. Il collegamento, pur non essendo pienamente risolutivo nel caso dello spanning tree, ha comunque permesso di chiarire i limiti del modello e di evidenziare la necessità di approcci ibridi.
+
+Un aspetto che merita particolare attenzione riguarda la possibilità di sviluppare codici e algoritmi in grado di ridurre la complessità computazionale rispetto a quanto analizzato in questo lavoro. Gli approcci implementati, pur risultando efficaci, presentano ancora margini di miglioramento sia dal punto di vista teorico sia sul piano pratico.
+
+In primo luogo, si potrebbero introdurre euristiche più sofisticate per l’algoritmo A* e per l’algoritmo IDA* volte a ridurre le riesplorazioni ridondanti.
+
+Infine, sul piano teorico, resta aperta la possibilità di individuare sottoclassi di configurazioni del gioco del 15 per le quali il routing number possa essere calcolato in modo più efficiente. L’identificazione di queste strutture particolari permetterebbe di restringere il campo dei casi NP-completi e di delineare strategie ibride capaci di adattarsi alla natura specifica del problema.  

@@ -1,0 +1,39 @@
+\chapter{Introduzione}
+
+\section{Introduzione generale}
+Nella stesura di questo lavoro di tesi il punto di partenza è stato lo studio della pubblicazione Routing permutations on graphs via matchings” di Noga Alon, F.R.K. Chung e R.L. Graham \cite{14}. In particolare, ci siamo concentrati sulla parte introduttiva relativa al problema delle permutazioni di instradamento su grafi. 
+
+A partire da questo spunto, l’obiettivo principale è stato quello di indagare se e in che modo fosse possibile ricondurre il gioco del 15 al quadro teorico delineato dagli autori, così da ottenere strumenti utili per affrontarne la risoluzione (\ref{modellazione}). Per farlo, è stato necessario innanzitutto definire in modo rigoroso le basi teoriche del problema: dalla formalizzazione delle permutazioni e della loro parità (\ref{modellazione}), alla modellizzazione del puzzle come grafo, fino ai richiami essenziali alla teoria della complessità (\ref{complessita}) e alla caratterizzazione delle classi P e NP. (\ref{complessita})
+
+Su queste fondamenta si è poi sviluppata l’analisi delle strategie risolutive: dagli algoritmi di ricerca euristica (A*, IDA*) alle ottimizzazioni basate su euristiche come la distanza di Manhattan e i conflitti lineari (\ref{codice}), fino a un approccio alternativo basato su Answer Set Programming (\ref{asp}).
+
+\section{Formalizzazione del problema} \cite{14}
+
+Immaginiamo di avere un grafo $G$ e di aver definito i nodi del grafo in modo che ognuno di essi abbia un colore. 
+Allo stesso modo supponiamo che ogni nodo del grafo contenga sopra una pedina, la quale assume un colore, che non per forza è uguale a quello che assume il nodo su cui si trova. 
+Per definire il problema in modo esatto, definiamo: 
+\begin{itemize}
+    \item $G=(V,E)$ un grafo connesso con self-loop in cui $|V|=n$;
+    \item $\pi(v)$ permutazione finale del nodo $v$ del grafo;
+    \item $\pi_0(v)$ permutazione iniziale del nodo $v$ del grafo;
+\end{itemize}
+Si ottiene, quindi, che $\pi$ rappresenta l'insieme delle permutazioni finali di ogni nodo del grafo e $\pi_0$ rappresenta l'insieme delle permutazioni iniziali dei nodi del grafo. Vogliamo che a ogni passo valga la seguente relazione:
+$$
+\forall i \forall v (\pi_i(v), \pi_{i+1}(v)) \in E
+$$
+tenendo conto che $\pi_i(v)$ rappresenta la permutazione del nodo $v$ al tempo $i$ e $i+1$, questo vuol dire che una pedina può solo essere scambiata con una pedina adiacente ad essa, quindi la permutazione del nodo $v$ al tempo $i$ e quella al tempo $i+1$ formano un arco del grafo.
+
+Definiamo: 
+\begin{itemize}
+    \item $P_v(t)$: posizione della pedina con posizione iniziale $v$ al tempo $t$; 
+    \item $P_v(t) = \pi_t(\pi_0^{-1}(v))$; 
+    \item dove $\{P_v(t): v \in V \}$ è una permutazione.
+\end{itemize} Otteniamo quindi il numero minimo di passi per passare da $\pi_0$ a $Id$:
+$$
+rt(G,\pi_0)
+$$
+Di conseguenza definiamo come routing number il valore:
+$$
+rt(G) = \underset{\pi_0}{\max} \ rt(G, \pi_0)
+$$
+come il numero massimo di mosse necessarie per riportare ogni pedina nella sua posizione ottimale con la sequenza più breve possibile.

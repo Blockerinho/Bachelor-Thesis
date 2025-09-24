@@ -1,0 +1,297 @@
+\chapter{Codice per la risoluzione del puzzle}
+\label{codice}
+\section{Introduzione}
+Definiamo ora le strutture generali necessarie allo sviluppo del codice, in Java, utile allo sviluppo di un programma per la risoluzione del puzzle utilizzando i metodi introdotti nel \cref{modellazione}. 
+
+
+\section{Strutture principali}
+\begin{itemize}
+    \item \texttt{board}: matrice intera \( N \times M \) che rappresenta lo stato attuale.
+    \item \texttt{pos}: mappa che associa ogni valore alla sua posizione obiettivo.
+    \item \texttt{pebbles}: mappa che associa ogni valore alla posizione corrente.
+    \item \texttt{empty}: valore che identifica la cella vuota.
+\end{itemize}
+
+\subsection{Classe Board}
+La seguente classe ha lo scopo di fornire una rappresentazione astratta del piano di gioco. 
+La struttura è stata astratta in maniera tale che possa descrivere il gioco del 15 ma anche qualsiasi altra rappresentazione di una tavola $N \times M$. 
+
+\begin{description}
+    \item[\texttt{board}] 
+        Matrice intera $N \times M$ che rappresenta lo stato attuale del puzzle, dove ogni cella contiene il valore di una tessera oppure il valore speciale della casella vuota.
+        
+    \item[\texttt{firstDimension}, \texttt{secondDimension}] 
+        Interi che rappresentano rispettivamente il numero di righe ($N$) e di colonne ($M$) della board.
+        
+    \item[\texttt{empty}] 
+        Valore intero che indica la tessera vuota nel puzzle (tipicamente $0$, $-1$ oppure $16$).
+        
+    \item[\texttt{pos}] 
+        Dizionario che associa ad ogni valore di tessera la sua posizione obiettivo (riga, colonna) nella configurazione risolta del puzzle.
+        
+    \item[\texttt{pebbles}] 
+        Dizionario che associa ad ogni valore di tessera la sua posizione attuale (riga, colonna) nella configurazione corrente.
+        
+    \item[\texttt{Board(int[][] tiles, int N, int M, int empty)}] 
+        Costruttore della classe. Inizializza la board copiando la matrice di input, imposta le dimensioni e il valore della casella vuota, e popola i dizionari \texttt{pos} e \texttt{pebbles} per la gestione delle posizioni delle tessere.
+        
+    \item[\texttt{isSolvable()}] 
+        Metodo che determina se la configurazione attuale del puzzle è risolvibile, calcolando il numero di inversioni e la posizione della casella vuota secondo le regole matematiche del gioco del 15.
+        
+    \item[\texttt{printBoard()}] 
+        Stampa a video la configurazione attuale della board, utile per il debug o la visualizzazione dello stato.
+        
+    \item[\texttt{hamming()}] 
+        Calcola e restituisce il numero di tessere fuori posto rispetto alla configurazione risolta (distanza di Hamming).
+        
+    \item[\texttt{manhattan()}] 
+        Calcola e restituisce la somma delle distanze di Manhattan di tutte le tessere dalla loro posizione obiettivo.
+        
+    \item[\texttt{getPhase(int val)}] 
+        Restituisce la “fase” a cui appartiene una tessera, utile per strategie di risoluzione suddivise in fasi (ad esempio, risolvere prima le righe superiori, poi le colonne, ecc.).
+        
+    \item[\texttt{pesoPerFase(int value, int fase)}] 
+        Restituisce un peso associato a una tessera in base alla fase attuale della risoluzione, per dare priorità a certe tessere durante la ricerca.
+        
+    \item[\texttt{manhattanPesato(int fase)}] 
+        Calcola la distanza di Manhattan pesata, cioè la somma delle distanze di tutte le tessere moltiplicata per il loro peso relativo alla fase.
+        
+    \item[\texttt{countLCrow(int row)}, \texttt{countLCcol(int col)}] 
+        Calcolano il numero di conflitti lineari rispettivamente su una riga o su una colonna. Un conflitto lineare si verifica quando due tessere sono nella stessa riga (o colonna) della loro posizione obiettivo ma sono invertite.
+        
+    \item[\texttt{linearConflicts()}] 
+        Calcola il numero totale di conflitti lineari su tutta la board, utile per migliorare le euristiche di ricerca.
+        
+    \item[\texttt{neighbors()}] 
+        Genera e restituisce tutte le configurazioni adiacenti ottenibili effettuando una singola mossa (spostamento della casella vuota in una delle quattro direzioni possibili).
+        
+    \item[\texttt{toJSON()}] 
+        Serializza la configurazione attuale della board in formato JSON, utile per esportare o salvare lo stato del puzzle.
+\end{description}
+
+\section{Possibili tecniche risolutive}
+\subsection{Algoritmo A*}
+Descriviamo in questa sezione le strutture utili per implementare l'algoritmo A* introdotto nel \cref{modellazione}. 
+
+In questa implementazione l'algoritmo si basa su una disposizione iniziale del piano di gioco $N\times M$ in cui la cella vuota viene identificata dal valore $N\times M$, nel nostro caso 16. 
+L'algoritmo risolutivo è quello di A* in cui vengono usate: 
+\begin{itemize}
+    \item una coda con proprità: per contenere a ogni iterazione le disposizioni a cui si può arrivare da quella corrente ordinate in base a una priorità in modo da scegliere sempre quella con priorità maggiore; 
+    \item una lista: per contenere le disposizioni visitate finora in modo da non visitare di nuovo disposizioni visitate rischiando di rimanere bloccati in cicli infiniti; 
+\end{itemize}
+
+A ogni iterazione, quindi, l'algoritmo genera le disposizioni a cui si può arrivare da quella corrente, assegna a loro una priorità, le inserisce in una coda con priorità e sceglie la mossa successiva prendendo quella con maggiore priorità.
+
+La priorità viene generata sommando due valori: 
+\begin{itemize}
+    \item numero di mosse: numero di mosse eseguite finora; 
+    \item distanza di Manhattan e conflitti lineari; 
+\end{itemize} I due valori rappresentano l'euristica $f(x) = g(x) + h(x)$ che guida l'algoritmo di A* nella ricerca della soluzione. Vengono quindi definite le seguenti strutture: 
+
+\begin{description}
+
+    \item[\texttt{Peso}] 
+        Classe che contiene il parametro \texttt{peso}, usato per implementare una versione pesata dell'algoritmo A* (A* pesato). Il peso modifica l'importanza dell'euristica nella funzione di costo.
+
+    \item[\texttt{State}] 
+        Classe interna che rappresenta uno stato del puzzle durante la ricerca. Ogni oggetto \texttt{State} contiene:
+        \begin{itemize}
+            \item \texttt{config}: oggetto \texttt{Board} che rappresenta la configurazione attuale del puzzle.
+            \item \texttt{moves}: numero di mosse effettuate per raggiungere questo stato dalla configurazione iniziale.
+            \item \texttt{previous}: riferimento allo stato precedente, utile per ricostruire il percorso di soluzione.
+        \end{itemize}
+        Implementa l'interfaccia \texttt{Comparable} per essere inserita in una coda di priorità, confrontando gli stati in base alla funzione di priorità (tipicamente $f(n) = g(n) + h(n)$, dove $g(n)$ è il numero di mosse e $h(n)$ è una funzione euristica come la somma di Manhattan e conflitti lineari).
+
+    \item[\texttt{astar}] 
+        Classe principale che implementa l'algoritmo A* per la risoluzione del gioco del 15 (o di un puzzle $N \times M$ generico). Le sue componenti principali sono:
+        \begin{itemize}
+            \item \texttt{solution}: riferimento allo stato finale risolto, utile per ricostruire la soluzione;
+            \item \texttt{isSolvable}: booleano che indica se la configurazione iniziale è risolvibile;
+            \item \texttt{nodesExplored}: contatore dei nodi esplorati durante la ricerca;
+            \item \texttt{finalConfigs}: mappa per memorizzare configurazioni finali già generate;
+        \end{itemize}
+
+    \item[\texttt{generateFinalConfig(int N, int M)}]
+        Metodo che genera la configurazione finale (risolta) del puzzle, riempiendo la matrice con valori crescenti da $1$ a $N \times M$.
+
+    \item[\texttt{astar(Board initial, int N, int M, int empty)}]
+        Costruttore che esegue l'algoritmo A*, la sua implementazione è descritta dai seguenti passi:
+        \begin{itemize}
+            \item Genera la configurazione finale.
+            \item Inizializza la coda di priorità (\texttt{openSet}) e l'insieme dei visitati (\texttt{visited}).
+            \item Inserisce lo stato iniziale.
+            \item Esegue il ciclo di ricerca: estrae lo stato con priorità minima, verifica se è la soluzione, esplora i vicini e aggiorna la coda.
+            \item Salva la soluzione se trovata.
+        \end{itemize}
+
+    \item[\texttt{isSolvable()}]
+        Restituisce \texttt{true} se la configurazione iniziale è risolvibile, altrimenti \texttt{false}.
+
+    \item[\texttt{nodesExplored()}]
+        Restituisce il numero di nodi (stati) esplorati durante la ricerca.
+
+    \item[\texttt{moves()}]
+        Restituisce il numero minimo di mosse necessarie per risolvere il puzzle, oppure $-1$ se non esiste soluzione.
+
+    \item[\texttt{solution()}]
+        Restituisce un oggetto iterabile contenente la sequenza delle configurazioni (\texttt{Board}) dalla iniziale alla finale, ricostruita a ritroso tramite i riferimenti \texttt{previous} degli stati.
+
+    \item[\texttt{solutionToJson()}]
+        Restituisce una stringa JSON che rappresenta la sequenza delle configurazioni della soluzione, utile per esportare o visualizzare la soluzione in formato strutturato.
+
+    \item[\texttt{writeSolutionToFile(String filename, String jsonString)}]
+        Scrive la soluzione in formato JSON su un file, gestendo eventuali errori di I/O.
+
+    \item[\texttt{main(String[] args)}]
+        Metodo di test che permette di eseguire l’algoritmo su una configurazione di esempio (o inserita da tastiera), stampa la soluzione, il numero di mosse e salva la soluzione in un file JSON.
+
+\end{description}
+
+Di seguito sono riportati alcuni degli algoritmi principali utili per l'implementazione del codice: 
+
+\begin{algorithm}[H]
+\caption{Calcolo della distanza di Manhattan nella classe \texttt{Board}}
+\small
+\begin{algorithmic}[1]
+\Function{manhattan}{}
+    \State $dist \gets 0$
+    \For{$i \gets 0$ \textbf{to} $firstDimension - 1$}
+        \For{$j \gets 0$ \textbf{to} $secondDimension - 1$}
+            \State $value \gets board[i][j]$
+            \If{$value \neq empty$}
+                \State $(goalRow, goalCol) \gets pos[value]$
+                \State $dist \gets dist + |i - goalRow| + |j - goalCol|$
+            \EndIf
+        \EndFor
+    \EndFor
+    \State \Return $dist$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Calcolo della distanza di Manhattan pesata nella classe \texttt{Board}}
+\small
+\begin{algorithmic}[1]
+\Function{manhattanPesato}{$fase$}
+    \State $totalCost \gets 0$
+    \For{$i \gets 0$ \textbf{to} $firstDimension - 1$}
+        \For{$j \gets 0$ \textbf{to} $secondDimension - 1$}
+            \State $value \gets board[i][j]$
+            \If{$value \neq empty$}
+                \State $(goalRow, goalCol) \gets pos[value]$
+                \State $peso \gets$ \Call{pesoPerFase}{$value, fase$}
+                \State $totalCost \gets totalCost + peso \times (|i - goalRow| + |j - goalCol|)$
+            \EndIf
+        \EndFor
+    \EndFor
+    \State \Return $totalCost$
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Algoritmo risolutivo}
+\begin{algorithm}[H]
+\caption{Algoritmo A* nella classe \texttt{astar}}
+\small
+\begin{algorithmic}[1]
+\Function{astar}{$initial, N, M, empty$}
+    \State $finalConfig \gets$ \Call{generateFinalConfig}{$N, M$}
+    \State $openSet \gets$ nuova coda di priorità
+    \State $visited \gets$ nuovo insieme vuoto
+    \State $startState \gets$ nuovo \texttt{State} con $initial$, $moves=0$, $previous=null$
+    \State inserisci $startState$ in $openSet$
+    \While{$openSet$ non è vuoto}
+        \State $current \gets$ estrai stato con priorità minima da $openSet$
+        \If{$current.config = finalConfig$}
+            \State \Return $current$ \Comment{Soluzione trovata}
+        \EndIf
+        \State aggiungi $current.config$ a $visited$
+        \For{ogni $neighbor$ in $current.config$.neighbors()}
+            \If{$neighbor$ non in $visited$}
+                \State $newState \gets$ nuovo \texttt{State} con $neighbor$, $moves = current.moves + 1$, $previous = current$
+                \State inserisci $newState$ in $openSet$
+            \EndIf
+        \EndFor
+    \EndWhile
+    \State \Return $null$ \Comment{Nessuna soluzione trovata}
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Algoritmo IDA*}
+In questa sezione descriviamo le strutture utili per implementare l’algoritmo IDA*.
+ 
+A differenza di A*, non mantiene esplicitamente l’insieme dei nodi già visitati a livello globale, ma esplora ricorsivamente i cammini fino a una soglia di costo, detta \emph{threshold}, evitando cicli tramite una lista di nodi visitati valida solo per la ricorsione corrente.  
+
+La funzione di costo è la stessa di A*:  
+\[
+f(x) = g(x) + h(x)
+\]  
+dove $g(x)$ rappresenta la distanza di Manhattan e $h(x)$ è una funzione euristica (ad esempio il numero di mosse o i conflitti lineari).  
+
+Il meccanismo iterativo è il seguente:  
+\begin{itemize}
+    \item si imposta come soglia iniziale il valore $f(x)$ della configurazione di partenza;
+    \item si esegue una ricerca in profondità, visitando solo configurazioni con $f(x) \leq$ soglia;
+    \item se la soluzione non viene trovata, la soglia viene aggiornata al valore minimo di $f(x)$ che ha superato la soglia corrente;
+    \item si ripete il processo finché non viene trovata la soluzione o finché non esistono più nodi da esplorare.
+\end{itemize}
+
+Vengono quindi definite le seguenti strutture:  
+
+\begin{description}
+
+    \item[\texttt{State}]  
+        Classe che rappresenta uno stato del puzzle. Contiene:
+        \begin{itemize}
+            \item \texttt{config}: oggetto \texttt{Board} che descrive la configurazione attuale del puzzle;
+            \item \texttt{moves}: numero di mosse effettuate per raggiungere questo stato;
+            \item \texttt{previous}: riferimento allo stato precedente, utile per ricostruire il percorso.
+        \end{itemize}
+        Definisce inoltre la funzione di priorità $f(n) = g(n) + h(n)$.
+
+    \item[\texttt{Result}]  
+        Classe interna che rappresenta l’esito di una ricerca ricorsiva. Contiene:
+        \begin{itemize}
+            \item \texttt{found}: indica se è stata trovata la soluzione;
+            \item \texttt{nextThreshold}: la nuova soglia calcolata, da usare per l’iterazione successiva;
+            \item \texttt{state}: lo stato finale se la soluzione è stata trovata.
+        \end{itemize}
+
+    \item[\texttt{idastar}]  
+        Classe principale che implementa l’algoritmo IDA*. Le sue componenti principali sono:
+        \begin{itemize}
+            \item \texttt{solution}: riferimento allo stato finale risolto;
+            \item \texttt{threshold}: soglia corrente della ricerca;
+            \item \texttt{finalConfig}: configurazione finale target del puzzle.
+        \end{itemize}
+
+    \item[\texttt{idastar(Board initial)}]  
+        Costruttore che avvia la ricerca IDA* a partire da una configurazione iniziale.  
+        I passi principali sono:
+        \begin{itemize}
+            \item inizializza la soglia con il valore $f(n)$ della configurazione iniziale;
+            \item esegue iterativamente la funzione \texttt{search} finché non viene trovata la soluzione o non ci sono più stati validi;
+            \item aggiorna la soglia a ogni iterazione.
+        \end{itemize}
+
+    \item[\texttt{search(State current, double threshold, Set<Board> visited)}]  
+        Funzione ricorsiva che esplora la configurazione \texttt{current}:
+        \begin{itemize}
+            \item calcola $f(n)$ e confronta con la soglia;
+            \item se $f(n)$ eccede la soglia, interrompe la ricerca e aggiorna la soglia;
+            \item se viene raggiunta la configurazione finale, ritorna la soluzione;
+            \item esplora i vicini della configurazione corrente, evitando cicli tramite \texttt{visited};
+            \item utilizza backtracking rimuovendo il nodo corrente da \texttt{visited} al termine della ricorsione.
+        \end{itemize}
+
+    \item[\texttt{moves()}]  
+        Restituisce il numero di mosse della soluzione, oppure $-1$ se non esiste soluzione.
+
+    \item[\texttt{solution()}]  
+        Restituisce la sequenza di configurazioni dalla iniziale alla finale ricostruita tramite i riferimenti \texttt{previous}.
+
+    \item[\texttt{main(String[] args)}]  
+        Metodo di test: inizializza una configurazione, verifica la risolvibilità e lancia l’algoritmo IDA*, stampando a video i passi della soluzione e il numero di mosse.
+\end{description}
